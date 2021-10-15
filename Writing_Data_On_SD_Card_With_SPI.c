@@ -705,7 +705,6 @@ Clear_Screen_SSD1963(unsigned int Colour){
     }
 
     TFT_CS = 1;
-    return Background_Colour;
 }
 
 
@@ -1779,7 +1778,7 @@ void initSPI(void)                               //bus speed = 112'000'000
 
 void initFastSPI(void)
 {
-    SPI3_Init_Advanced(_SPI_MASTER, _SPI_8_BIT, 10, _SPI_SS_DISABLE, _SPI_DATA_SAMPLE_MIDDLE, _SPI_CLK_IDLE_HIGH, _SPI_ACTIVE_2_IDLE);
+    SPI3_Init_Advanced(_SPI_MASTER, _SPI_8_BIT, 8, _SPI_SS_DISABLE, _SPI_DATA_SAMPLE_MIDDLE, _SPI_CLK_IDLE_HIGH, _SPI_ACTIVE_2_IDLE);
 }
 
 
@@ -1830,62 +1829,11 @@ void Initialise_SDCARD(){
       unsigned char Complete;
       unsigned char Finished;
       unsigned char end;
-
       unsigned char Buffer_Start;
+      //Clear_Screen_SSD1963(Blue);
                                       //  OR, IF YOU LEAVE IT SET TO FAT32 or FAT16, THE LAST BIT OF CODE WILL CHECK THE BOOT SIGNATURE AND START AGAIN. AUTOMATIC
       //Clear_Screen_SSD1963(Blue);
       Delay_ms(400);           //TIME FOR SD CARD
-      SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
-
-      SD_Card_Chip_Select = 1;            // EVERY COMMAND HAS A CONSTANT LENGTH OF 6 BYTES.
-                                          // COMMAND = 1 BYTE.
-                                          // FOLLOWED BY A SET OF FOUR BYTES WHICH ARE KNOWN AS THE ARGUMENTS.
-                                          // THESE ARGUMENTS USUALLY CONTAIN THE ADDRESS OF A DATA OR THE LENGTH OF A BLOCK.
-                                          // THE LAST BYTE IS THE CRC (CYCLIC REDUNDANCY CHECK) BYTE.
-                                          // FOR SOME COMMANDS LIKE CMD0, THE CRC IS 0X95 AND IN MOST CASES, A 0XFF IS SENT.
-
-                                          // 64 = Software Reset Command Zero - Should Return a 1 Meaning The Card Is In An Idle State
-                                          // 65 = Initiate Initialisation Process - Should Return a 0 Meaning Everything is Clear & Card Not in Idle State.
-                                          // CMD0, CMD1, ACMD41, CMD58 and CMD59 will be accepted when the card is in its idle state.
-
-      startloop:
-
-      for (x=0; x<10; x++){    // DUMMY CLOCKS  74 ARE REQUIRED.
-        SPI3_Write(0xff);
-       }
-       
-      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-      SD_Card_Chip_Select = 0;
-      SPI3_Write(CMD0);       //Software Reset Command  ZERO  HEX 40
-      SPI3_Write(0x00);
-      SPI3_Write(0x00);
-      SPI3_Write(0x00);
-      SPI3_Write(0x00);
-      SPI3_Write(0x95);        // 0x95 Is Checksum For Software Reset
-      SPI3CONbits.DISSDO = 1;  // TURNS OFF SERIAL DATA OUT
-      SPI3_Write(0xFF);        // COMMAND RESPONSE TIME (NCR).
-      SD_Card_Chip_Select = 1;
-
-      SD_Card_Chip_Select = 0;
-      junkBufferOne[0] = SPI3_Read(dummybuffer);  // Response R1 with LSB Set To 1
-      SD_Card_Chip_Select = 1;
-      Delay_ms(5);
-      //Write_Number(dataBuffer[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,White);
-      //Write_Number(0,sdcardbuffer_X_position+250,sdcardbuffer_Y_position,Black);
-      //Delay_ms(400);
-      //Clear_Screen_SSD1963(Blue);
-
-      if (junkBufferOne[0] !=1){
-          Counter++;
-
-          if (Counter >5){
-              SD_Error = 111;
-              File_Type = 0;
-              goto Finished;
-           }
-            goto startloop;
-       }
-
 
       Counter = 0;
       loop2:
@@ -1907,8 +1855,8 @@ void Initialise_SDCARD(){
           Boot_SectorBuffer[x] = SPI3_Read(dummybuffer);
         }
       SD_Card_Chip_Select = 1;
-      Delay_ms(5);
-     /*Write_Number(dataBuffer[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,White);
+      Delay_ms(20);
+     /*Write_Number(Boot_SectorBuffer[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,White);
       Write_Number(dataBuffer[1],sdcardbuffer_X_position,sdcardbuffer_Y_position+30,White);
       Write_Number(dataBuffer[2],sdcardbuffer_X_position,sdcardbuffer_Y_position+60,White);
       Write_Number(dataBuffer[3],sdcardbuffer_X_position,sdcardbuffer_Y_position+90,White);
@@ -1951,7 +1899,7 @@ void Initialise_SDCARD(){
       SD_Card_Chip_Select = 0;
       Boot_SectorBuffer[0] = SPI3_Read(dummybuffer);
       SD_Card_Chip_Select = 1;
-      Delay_ms(5);
+      Delay_ms(20);
      /*sdcardbuffer_Y_position = 30;
       Write_Number(dataBuffer[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,White);
       Write_Number(55,sdcardbuffer_X_position+250,sdcardbuffer_Y_position,Black);
@@ -1977,7 +1925,7 @@ void Initialise_SDCARD(){
 
       //Write_Number(Boot_SectorBuffer[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
       //Write_Number(41,sdcardbuffer_X_position+250,sdcardbuffer_Y_position,Black);
-      //Delay_ms(100);
+      Delay_ms(20);
 
 
       if (Boot_SectorBuffer[0] == 0){
@@ -1986,13 +1934,17 @@ void Initialise_SDCARD(){
        }else {
               Counter++;
               Delay_ms(2);
-           if (Counter >5){
+           if (Counter >6){
               SD_Error = 41;
               File_Type = 0;
-              goto Finished;
+             // goto Finished;
             }
 
         goto loop3;          }
+        
+        
+        
+        while(SD_Error==41){}
 
       loop5:  //--------------------------------------------------------------------------------------------
       // Delay_ms(2300);
@@ -2017,7 +1969,7 @@ void Initialise_SDCARD(){
          Boot_SectorBuffer[x] = SPI3_Read(dummybuffer);
        }
       SD_Card_Chip_Select = 1;          //  The Lower 12 Bits In The Return Value = 0x1AA Mean That The Card Is Sdc V2 And Can Work At A Voltage Range Of Between 2.7 To 3.6
-      Delay_ms(5);
+      Delay_ms(20);
       /*Write_Number(Boot_SectorBuffer[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
       Write_Number(Boot_SectorBuffer[1],sdcardbuffer_X_position,sdcardbuffer_Y_position+30,Black);
       Write_Number(Boot_SectorBuffer[2],sdcardbuffer_X_position,sdcardbuffer_Y_position+60,Black);
@@ -2055,7 +2007,7 @@ void Initialise_SDCARD(){
       SD_Card_Chip_Select = 0;
       junkBufferOne[0] = SPI3_Read(dummybuffer);
       SD_Card_Chip_Select = 1;
-      Delay_ms(5);
+      Delay_ms(20);
       /*Write_Number(dataBuffer[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
       Write_Number(16,sdcardbuffer_X_position+200,sdcardbuffer_Y_position,Black);
      // Delay_ms(400);*/
@@ -2063,7 +2015,7 @@ void Initialise_SDCARD(){
       if (junkBufferOne[0] !=0){
           Counter++;
            Delay_ms(1);
-          if (Counter >5){
+          if (Counter >6){
               SD_Error = 16;
               File_Type = 0;
               goto Finished;
@@ -2379,18 +2331,16 @@ void Show_Boot_information(){
         TFT_Write_Text("Root Directory   =",Text_Line_Start_x,Font_Height*10);
  }
  
-
- 
- 
 unsigned char dataBuffer[512];   // SECTOR BUFFER
-void Read_Sector(unsigned long Address){
-
+unsigned long Address2;
+Read_Sector(unsigned long Address){
+      
+      unsigned char looplast;
       unsigned int x = 0;
       SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-    // goto looplast;
-      Delay_ms(30);
-      loop6:
       //Clear_Screen_SSD1963(Cyan);
+      loop6:
+      Delay_ms(20);
       
       SD_Card_Chip_Select = 0;
       SPI3_Write(CMD16);  //Command 16          read block
@@ -2405,21 +2355,23 @@ void Read_Sector(unsigned long Address){
 
       SD_Card_Chip_Select = 0;
       junkBufferOne[0] = SPI3_Read(dummybuffer);
+      //junkBufferOne[1] = SPI3_Read(dummybuffer);  ????
+      //junkBufferOne[2] = SPI3_Read(dummybuffer);  ????
       SD_Card_Chip_Select = 1;
+      Delay_ms(30);
 
+      ///Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position+30,Black);
+      //Write_Number(junkBufferOne[1],sdcardbuffer_X_position,sdcardbuffer_Y_position+60,Black);
+      //Write_Number(junkBufferOne[2],sdcardbuffer_X_position,sdcardbuffer_Y_position+90,Black);
+      //Write_Number(junkBufferOne[3],sdcardbuffer_X_position,sdcardbuffer_Y_position+120,Black);
+     // Write_Number(junkBufferOne[4],sdcardbuffer_X_position,sdcardbuffer_Y_position+150,Black);
+     // Write_Number(junkBufferOne[5],sdcardbuffer_X_position,sdcardbuffer_Y_position+180,Black);
+     // Write_Number(16,sdcardbuffer_X_position+200,sdcardbuffer_Y_position,Black);*/
 
-      /*Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position+30,Black);
-      Write_Number(junkBufferOne[1],sdcardbuffer_X_position,sdcardbuffer_Y_position+60,Black);
-      Write_Number(junkBufferOne[2],sdcardbuffer_X_position,sdcardbuffer_Y_position+90,Black);
-      Write_Number(junkBufferOne[3],sdcardbuffer_X_position,sdcardbuffer_Y_position+120,Black);
-      Write_Number(junkBufferOne[4],sdcardbuffer_X_position,sdcardbuffer_Y_position+150,Black);
-      Write_Number(junkBufferOne[5],sdcardbuffer_X_position,sdcardbuffer_Y_position+180,Black);
-      Write_Number(16,sdcardbuffer_X_position+200,sdcardbuffer_Y_position,Black);*/
-     // Delay_ms(2400);
 
       if (junkBufferOne[0] !=0){
           Counter++;
-
+           Delay_ms(2);
           if (Counter >5){
               Clear_Screen_SSD1963(Red);
               SD_Error = 16;
@@ -2430,12 +2382,12 @@ void Read_Sector(unsigned long Address){
            }
             goto loop6;
        }
-      Delay_ms(30);
+
       looplast:
 
       //Clear_Screen_SSD1963(Lavenderblush);
-     // sdcardbuffer_X_position = 30;
-     // sdcardbuffer_Y_position = 30;
+      //sdcardbuffer_X_position = 30;
+      //sdcardbuffer_Y_position = 30;
       SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
       SD_Card_Chip_Select = 0;
       SPI3_Write(CMD17);     //Command 17  Read Sector
@@ -2447,19 +2399,19 @@ void Read_Sector(unsigned long Address){
       SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
       SPI3_Write(0xFF);     // Command Response Time (NCR).
       SD_Card_Chip_Select = 1;
-
+      
       SD_Card_Chip_Select = 0;
       junkBufferOne[0] = SPI3_Read(dummybuffer);
       SD_Card_Chip_Select = 1;
-      
-     // Write_Number(dataBuffer[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
-     // Write_Number(17,sdcardbuffer_X_position+200,sdcardbuffer_Y_position,Red);
-     // Write_Number(Address/512,sdcardbuffer_X_position+450,30,Red);
-      //Delay_ms(400);
+      Delay_ms(30);
+      //Write_Number(dataBuffer[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
+      //Write_Number(17,sdcardbuffer_X_position+200,sdcardbuffer_Y_position,Red);
+      //Write_Number(Address/512,sdcardbuffer_X_position+450,30,Red);
+      //Delay_ms(500);
 
       if (junkBufferOne[0] !=0){
           Counter++;
-
+          Delay_ms(1);
           if (Counter >5){
               Clear_Screen_SSD1963(Red);
               SD_Error = 17;
@@ -2467,27 +2419,30 @@ void Read_Sector(unsigned long Address){
               TFT_Write_Text("SD   Card   Error   READ   SECTOR   CMD  17  IN    READ    SECTOR",2,30);
               Delay_ms(400);
            }
+          goto looplast;
        }
-       Delay_ms(30);
+
+
        //-----------------------------READING THE DATA BUFFER HERE + CHECKSUM BYTES IN FRONT OF DATA AND AFTER----------------------------------------------------------
 
       SD_Card_Chip_Select = 0;
 
        for (x=0; x<File_Type; x++){
           junkBufferOne[x] = SPI3_Read(255);
-        }
+         }
 
-      for (x=0; x<512; x++){
+       for (x=0; x<512; x++){
           dataBuffer[x] = SPI3_Read(255);     //<<<<<<<<<<<<<<DATA BUFFER HERE
-        }
+         }
 
-      for (x=0; x<2; x++){
+       for (x=0; x<2; x++){
           junkBufferTwo[x] = SPI3_Read(255);
-        }
+         }
 
-      SD_Card_Chip_Select = 1;
-      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-
+       SD_Card_Chip_Select = 1;
+       SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
+       Address2 = (Address /512);
+       return Address2;
 }
  
 
@@ -2552,15 +2507,23 @@ struct Text_File_Details{
   
 }TextFile;
 
+                                                                                           //cr
+unsigned char ErrorCode0 = 0;  //  cr  t  h  a  n  k  s     4     w  a   t  c h  i  n  g   .    d  o  n  t     f  o  r  g  e  t     t  o     h  i  t     l  i  k  e     s  e  e     s  h  o  w     m  o  r  e     4     l  i  n  k
+unsigned char Character_Array[] = {13,'T',72,65,78,75,83,32,52,32,87,65,84,67,72,73,78,71,46,13,68,79,78,84,32,70,79,82,71,69,84,32,84,79,32,72,73,84,32,76,73,75,69,13,83,69,69,32,83,72,79,87,32,77,79,82,69,32,52,32,76,73,78,75};
 
-unsigned char ErrorCode0 = 0;
-Write_Sector(unsigned long Sector, unsigned int Extension){
+//unsigned char Character_Array2[] = {T,H,A,NKS4WATCHINGDONTFORGETTOHITLIKESEESHOWMOREFORLINK};
+void Write_Message_To_Sector(unsigned long Address){
 
-     unsigned long Address = 0;
-     Actual_Sector.Sector = Sector;
-     Actual_Sector.Sector_Extension = Extension;
-
-      //Clear_Screen_SSD1963(Cyan);
+     unsigned int x = 0;
+     unsigned int Result = 0;
+     unsigned char i;
+     
+     Delay_ms(30);
+     //Clear_Screen_SSD1963(Cyan);
+     //Result = strlen (Character_Array);
+     //Write_Number(Result,360,30,Red);
+     //Delay_ms(300);
+     
      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
      SD_Card_Chip_Select = 0;
      SPI3_Write(CMD16);  // Read Sector Size
@@ -2579,15 +2542,21 @@ Write_Sector(unsigned long Sector, unsigned int Extension){
 
      //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
      //Write_Number(16,sdcardbuffer_X_position+150,sdcardbuffer_Y_position,Red);
-     Delay_ms(30);
+     //Delay_ms(30);
+       if(junkBufferOne[0] !=0){
+          Counter++;
+          Delay_ms(2);
+          ErrorCode0 +=16;
+          if (Counter >5){
+             Clear_Screen_SSD1963(Red);
+             TFT_Write_Text("ERROR 16 WRITE SECTOR",30,70);
 
-     //Clear_Screen_SSD1963(Lavenderblush);
+           }
+          goto loopwrite1;
+      }
+
 
      loopwrite1:
-
-     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-     //Address = (512) * (Actual_Sector.Sector + Actual_Sector.Sector_Extension);
-     Address = (512) * (Sector + Extension);    //ADDRESS TO WRITE TO.
 
      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
      SD_Card_Chip_Select = 0;
@@ -2619,32 +2588,243 @@ Write_Sector(unsigned long Sector, unsigned int Extension){
           goto loopwrite1;
       }
 
-     //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position+30,Black);
-     //Write_Number(24,sdcardbuffer_X_position+150,sdcardbuffer_Y_position+30,Red);
-     //Write_Number(Address,sdcardbuffer_X_position+250,20,Red);
-     //TFT_Write_Text("Writing     Address",2,10);
-     Delay_ms(30);
+     //Write_Number(junkBufferOne[0],3,30,Black);
+     //Write_Number(24,3,60,Black);
+     //Write_Number(Address,50,250,Red);
+     //TFT_Write_Text("Writing  to   Address",2,10);
+     SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
+     Delay_us(500);
+     i=0;
+     
+     SD_Card_Chip_Select = 0;
+     SPI3_Write(0xFE);
 
+     for (x=0; x<512; x++){
+         SPI3_Write(Character_Array[i]);        //<<<<<WRITING DATA HERE
+         i++;
+         if (i>64){
+            i = 0; }
+      }
+     SD_Card_Chip_Select = 1;
+
+     SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
+     SD_Card_Chip_Select = 0;
+     for (x=0; x<2; x++){
+         junkBufferTwo[x] = SPI3_Read(dummybuffer);
+       }
+     SD_Card_Chip_Select = 1;
+
+
+     //Write_Number(junkBufferTwo[0],20,200,Blue);
+     //Write_Number(junkBufferTwo[1],130,200,Blue);
+     //Write_Number(junkBufferTwo[2],240,200,Blue);
+     Clear_Screen_SSD1963(Yellow);
+     TFT_Set_Font(Tahoma25x27,CL_BLACK,FO_HORIZONTAL);
+     TFT_Write_Text("COMPLETED    WRITING    TEXT    FILE   :)",105,150);
+     Delay_ms(300);
+     SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
+
+
+      /*for (x=0; x<8; x++){     //ANOTHER EXAMPLE
+         SPI3_Write(13);
+         SPI3_Write('T');
+         SPI3_Write('H');
+         SPI3_Write('A');
+         SPI3_Write('N');
+         SPI3_Write('K');
+         SPI3_Write('S');
+         SPI3_Write(' ');
+         SPI3_Write('4');
+         SPI3_Write(' ');
+         SPI3_Write('W');
+         SPI3_Write('A');
+         SPI3_Write('T');
+         SPI3_Write('C');
+         SPI3_Write('H');
+         SPI3_Write('I');
+         SPI3_Write('N');
+         SPI3_Write('G');
+         SPI3_Write('.');
+         SPI3_Write(13);
+         SPI3_Write('D');
+         SPI3_Write('O');
+         SPI3_Write('N');
+         SPI3_Write('T');
+         SPI3_Write(' ');
+         SPI3_Write('F');
+         SPI3_Write('O');
+         SPI3_Write('R');
+         SPI3_Write('G');
+         SPI3_Write('E');
+         SPI3_Write('T');
+         SPI3_Write(' ');
+         SPI3_Write('T');
+         SPI3_Write('O');
+         SPI3_Write(' ');
+         SPI3_Write('H');
+         SPI3_Write('I');
+         SPI3_Write('T');
+         SPI3_Write(' ');
+         SPI3_Write('L');
+         SPI3_Write('I');
+         SPI3_Write('K');
+         SPI3_Write('E');
+         SPI3_Write(13);
+         SPI3_Write('S');
+         SPI3_Write('E');
+         SPI3_Write('E');
+         SPI3_Write(' ');
+         SPI3_Write('S');
+         SPI3_Write('H');
+         SPI3_Write('O');
+         SPI3_Write('W');
+         SPI3_Write(' ');
+         SPI3_Write('M');
+         SPI3_Write('O');
+         SPI3_Write('R');
+         SPI3_Write('E');
+         SPI3_Write(' ');
+         SPI3_Write('4');
+         SPI3_Write(' ');
+         SPI3_Write('L');
+         SPI3_Write('I');
+         SPI3_Write('N');
+         SPI3_Write('K');
+       }*/
+
+
+     /*for (x=0; x<512; x++){
+           SPI3_Write(j);
+           j++;
+         if (j>90){      //A TO Z  EXAMPLE
+             j=65;
+         }
+       }*/
 }
+
+
+void Update_Root_Directory(unsigned long Address){
+
+      unsigned int x = 0;
+
+      // Clear_Screen_SSD1963(Cyan);
+      loop1:
+      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
+      SD_Card_Chip_Select = 0;
+      SPI3_Write(CMD16);       //Set Byte Size
+      SPI3_Write(0x00);
+      SPI3_Write(0x00);
+      SPI3_Write(0x02);
+      SPI3_Write(0x00);
+      SPI3_Write(0x87);        //Checksum
+      SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
+      SPI3_Write(0xFF);        //Command Response Time (NCR).
+      SD_Card_Chip_Select = 1;
+
+      SD_Card_Chip_Select = 0;
+      junkBufferOne[0] = SPI3_Read(dummybuffer);
+      SD_Card_Chip_Select = 1;
+
+       if (junkBufferOne[0] !=0){
+          Counter++;
+           Delay_ms(1);
+          if (Counter >5){
+             Clear_Screen_SSD1963(Red);
+             TFT_Write_Text("ERROR   16   UPDATING   ROOT   :)",105,150);
+             Delay_ms(500);
+           }
+           goto loop1;
+       }
+
+      //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
+      //Write_Number(16,sdcardbuffer_X_position+150,sdcardbuffer_Y_position,Red);
+      Delay_ms(50);
+
+      loop2:
+      //Clear_Screen_SSD1963(Lavenderblush);
+
+      SPI3CONbits.DISSDO = 0;             //TURNS ON SERIAL DATA OUT
+      SD_Card_Chip_Select = 0;
+      SPI3_Write(CMD24);          //Command 24   WRITE A SECTOR OR WHAT EVER YOU SET IN CMD16
+      SPI3_Write(Address>>24);
+      SPI3_Write(Address>>16);
+      SPI3_Write(Address>>8);
+      SPI3_Write(Address);
+      SPI3_Write(0x87);        //Checksum
+      SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
+      SPI3_Write(0xFF);        //Command Response Time (NCR).
+      SD_Card_Chip_Select = 0;
+
+      SD_Card_Chip_Select = 0;
+      junkBufferOne[0] = SPI3_Read(dummybuffer);
+      SD_Card_Chip_Select = 1;
+
+      if (junkBufferOne[0] !=0){
+           Counter++;
+           Delay_ms(1);
+
+           if (Counter >5){
+             Clear_Screen_SSD1963(Red);
+             TFT_Write_Text("ERROR   24   UPDATING   ROOT   :)",105,150);
+             Delay_ms(500);
+            }
+            goto loop2;
+       }
+
+      //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
+      //Write_Number(24,sdcardbuffer_X_position+150,sdcardbuffer_Y_position,White);
+       Delay_ms(50);
+
+      loop3:
+      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
+      Delay_ms(1);
+      SD_Card_Chip_Select = 0;
+      SPI3_Write(0xFE);
+
+      for (x=0; x<512; x++){
+         SPI3_Write(dataBuffer[x]);
+        }
+      SD_Card_Chip_Select = 1;
+
+      SD_Card_Chip_Select = 0;
+      for (x=0; x<2; x++){
+       junkBufferTwo[x] = SPI3_Read(dummybuffer);
+        }
+      SD_Card_Chip_Select = 1;
+
+      Clear_Screen_SSD1963(Yellow);
+
+      TFT_Write_Text("COMPLETED    UPDATING    ROOT    DIRECTORY   :)",105,50);
+      Delay_ms(100);
+      TFT_Write_Text("NOW    TO    READ    TEXT    FILE     :)",185,100);
+      Delay_ms(200);
+      //TFT_Write_Text("Counter",30,300);
+      //Write_Number(Counter,360,300,Red);
+      //Delay_ms(300);
+}
+
+
+
+
+
+
+
+
+
 
 void main(){
 
 
-
-     unsigned char ErrorCode1 = 0;
-     unsigned char ErrorCode2 = 0;
-     unsigned char ErrorCode3 = 0;
-     unsigned char ErrorCode4 = 0;
      unsigned int xpos = 30;
      unsigned int ypos = 30;
      unsigned long Address = 0;
      unsigned long Sector = 0;
      unsigned char dummybuffer = 255;
-     unsigned char j = 0;
      unsigned int  x = 0;
-     unsigned char anotherloop;
+    // unsigned char anotherloop;
      unsigned char infoloop;
      unsigned char loopwrite1;
+    // unsigned char loop222;
      unsigned char home;
      unsigned char readloop;
      unsigned char readsectorloop;
@@ -2663,11 +2843,8 @@ void main(){
      unsigned char HexString31[4];
      unsigned char Complete = 0;
 
-     
-
      Actual_Sector.Sector = 0;
      Actual_Sector.Sector_Extension = 0;
-
 
       LATB10_bit = 1;
       LATB14_bit = 1;
@@ -2689,13 +2866,15 @@ void main(){
       initSPI();
       LATB10_bit = 1;     // RB10 = SERIAL DATA OUT SPI3
       LATB14_bit = 1;     // RB14 = CLOCK SPI 3
+      
+      //goto anotherloop;
 
       SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
       for (x=0; x<10; x++){    // DUMMY CLOCKS  74 ARE REQUIRED.
          SPI3_Write(0xff);
         }
       SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-      
+
       SD_Card_Chip_Select = 0;
       SPI3_Write(CMD0);  //Software Reset Command  ZERO  HEX 40
       SPI3_Write(0x00);
@@ -2717,7 +2896,7 @@ void main(){
       Delay_ms(200);
       while(Boot_SectorBuffer[0]<1);
       
-      // SPI3CONbits.DISSDO =0;
+      //SPI3CONbits.DISSDO =0;
       
       LATJ4_Bit = 1;   //MEMORY CHIP SELECT C/E - CHIP ENABLE INPUT  PIN 6 SRAM   EBICS0/RJ4
       SRAM_CS = 1;
@@ -2727,11 +2906,11 @@ void main(){
       LATC4_BIT = 1;   //O/E MEMORY OUTPUT ENABLE PIN 41 PMRD PMP READ PIN 13 ON PIC  EBIOE/AN19/RPC4/PMRD/RC4*/
       
       SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-      Initialise_SDCARD();
+
+      Initialise_SDCARD();  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNCTION
       
-      //loop1:
-      //goto loop1;
       home:
+      
       Clear_Screen_SSD1963(Lavenderblush);
 
       sdcardbuffer_X_position = 30;
@@ -2749,18 +2928,17 @@ void main(){
        TFT_Fill_Screen(CL_Blue);
        TFT_Write_Text("TOO LATE, CARD FORMATTED !",50,150); //****************************
        Delay_ms(2000);*/
-      //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////////////////////////////////////
       
-      // (Complete !=1){
       
-      Get_Boot_Information();        //does what it says
+      Get_Boot_Information();        //does what it says   BOOT SECTOR IS READ DURING Initialise SDCARD
 
       Show_Boot_information();        //does what it says
 
-      Delay_ms(400);
+      Delay_ms(200);
 
       Sector = (512)*Root_Directory;
-      Read_Sector(Sector);
+      Read_Sector(Sector);          //<<<<<<<<<<<<<<<<<<READ ROOT DIRECTORY TO VIEW FILES<<<<<<<<<
 
       Clear_Screen_SSD1963(Lavenderblush);
       TFT_Write_Char(dataBuffer[0],xpos,ypos);       //display sdcard name
@@ -2778,11 +2956,11 @@ void main(){
       Write_Number(Sector/512,sdcardbuffer_X_position+300,65,Red);
       TFT_Write_Text("Sector    Number   = ",30,70);
       Write_Number(Sector,360,298,Colour1);
-      Delay_ms(600);
+      Delay_ms(900);
       Clear_Screen_SSD1963(Lavenderblush);
 
       ypos = 10;
-      Location=128;
+      Location=128;   // jumps over system info
            
       while(File_Counter <3){
 
@@ -2831,8 +3009,7 @@ void main(){
      // Write_Number(dataBuffer[284],560,ypos,Red);
      // Sector = (Root_Directory+1)*512;
      // Read_Sector(Sector);
-      
-      //------------------------------------------------------------------------------------------------------------------------------
+     //------------------------------------------------------------------------------------------------------------------------------
      /*Location = 0;
       TFT_Write_Text("Sector    Number             = ",xpos,ypos);
       Write_Number(Sector/512,360,ypos,Red);
@@ -2932,138 +3109,50 @@ void main(){
      TFT_Write_Text("Actual    Sector    Calculator    =",xpos,ypos);
      // Write_Number(ypos,360,ypos,red); SO I COULD PUT IT IN TIMER
      ypos +=64;
-     TFT_Write_Text("ERRORS  1  2  3  4    =",xpos,ypos);
-     Write_Number(ErrorCode0 ,320,ypos,Magenta);
-     Write_Number(ErrorCode1 ,400,ypos,Yellow);
-     Write_Number(ErrorCode2 ,470,ypos,Blue);
-     Write_Number(ErrorCode3 ,540,ypos,Violet);
-     Write_Number(ErrorCode4 ,610,ypos,Black);
+
      ypos +=32;
 
      InitTimer1();
      EnableInterrupts();
      while(File_Counter<1);
-    //  while(File_Counter<100); //DELAY FOR YOUTUBE VIDEO
      while(Complete>0);
 
      Delay_ms(2000);
       
-     T1CONbits.ON = 0; //<<<<<<<<<<<<<<<<<<TIMER 1 OFF
+     T1CONbits.ON = 0; //<<<<<TIMER 1 OFF
        
-     if(Counter >=5){
-       goto home;   }
+     /////////////////////////////////////////////////////////OK WITH THIS BELOW HERE
        
-     Actual_Sector.Sector_Extension = 0;
-     Write_Sector(Actual_Sector.Sector, Actual_Sector.Sector_Extension);    //SET ADDRESS TO WRITE TO.
-
-     //WRITE THIS BELOW
-
-      j = 65;
+       
+     /*SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
      SD_Card_Chip_Select = 0;
-     SPI3_Write(0xFE);
-
-     for (x=0; x<8; x++){
-         SPI3_Write(13);
-         SPI3_Write('T');
-         SPI3_Write('H');
-         SPI3_Write('A');
-         SPI3_Write('N');
-         SPI3_Write('K');
-         SPI3_Write('S');
-         SPI3_Write(' ');
-         SPI3_Write('4');
-         SPI3_Write(' ');
-         SPI3_Write('W');
-         SPI3_Write('A');
-         SPI3_Write('T');
-         SPI3_Write('C');
-         SPI3_Write('H');
-         SPI3_Write('I');
-         SPI3_Write('N');
-         SPI3_Write('G');
-         SPI3_Write('.');
-         SPI3_Write(13);
-         SPI3_Write('D');
-         SPI3_Write('O');
-         SPI3_Write('N');
-         SPI3_Write('T');
-         SPI3_Write(' ');
-         SPI3_Write('F');
-         SPI3_Write('O');
-         SPI3_Write('R');
-         SPI3_Write('G');
-         SPI3_Write('E');
-         SPI3_Write('T');
-         SPI3_Write(' ');
-         SPI3_Write('T');
-         SPI3_Write('O');
-         SPI3_Write(' ');
-         SPI3_Write('H');
-         SPI3_Write('I');
-         SPI3_Write('T');
-         SPI3_Write(' ');
-         SPI3_Write('L');
-         SPI3_Write('I');
-         SPI3_Write('K');
-         SPI3_Write('E');
-         SPI3_Write(13);
-         SPI3_Write('S');
-         SPI3_Write('E');
-         SPI3_Write('E');
-         SPI3_Write(' ');
-         SPI3_Write('S');
-         SPI3_Write('H');
-         SPI3_Write('O');
-         SPI3_Write('W');
-         SPI3_Write(' ');
-         SPI3_Write('M');
-         SPI3_Write('O');
-         SPI3_Write('R');
-         SPI3_Write('E');
-         SPI3_Write(' ');
-         SPI3_Write('4');
-         SPI3_Write(' ');
-         SPI3_Write('L');
-         SPI3_Write('I');
-         SPI3_Write('N');
-         SPI3_Write('K');
-       }
-       
-
-      
-     /*for (x=0; x<512; x++){
-
-        SPI3_Write(j);
-        j++;
-
-        if (j>90){
-         j=65;
-        }
-
-       }*/
-      
-     SD_Card_Chip_Select = 1;
-     Delay_us(500);
+     SPI3_Write(CMD16);  // Read Sector Size
+     SPI3_Write(0x00);
+     SPI3_Write(0x00);
+     SPI3_Write(0x02);
+     SPI3_Write(0x00);
+     SPI3_Write(0x87);     // Checksum
      SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
-     
-     SD_Card_Chip_Select = 0;
-     for (x=0; x<2; x++){
-         junkBufferTwo[x] = SPI3_Read(dummybuffer);
-       }
+     SPI3_Write(0xFF);     // Command Response Time (NCR).
      SD_Card_Chip_Select = 1;
-     
-     Clear_Screen_SSD1963(Yellow);
-     //Write_Number(junkBufferTwo[0],20,200,Blue);
-     //Write_Number(junkBufferTwo[1],130,200,Blue);
-     //Write_Number(junkBufferTwo[2],240,200,Blue);
-     
-     
-     TFT_Set_Font(Tahoma25x27,CL_BLACK,FO_HORIZONTAL);
-     TFT_Write_Text("COMPLETED    WRITING    TEXT    FILE   :)",105,150);
-     Delay_ms(500);
+
+     SD_Card_Chip_Select = 0;
+     junkBufferOne[0] = SPI3_Read(dummybuffer);
+     SD_Card_Chip_Select = 1;*/
      
      
-    // goto  readloop;    I USED THIS LOOP TO BYPASS UPDATING ROOT DIRECTORY IN MY YOUTUBE VIDEO 13/10/2021
+     //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
+     //Write_Number(16,sdcardbuffer_X_position+150,sdcardbuffer_Y_position,Red);
+     //Delay_ms(300);
+     
+     //////////////////////////////OK WITH ABOVE HERE
+
+     Actual_Sector.Sector_Extension = 8;
+     Address = ((512) * ((Actual_Sector.Sector + Actual_Sector.Sector_Extension)));    //SET ADDRESS TO WRITE TO.
+
+     Write_Message_To_Sector(Address);   //<<<<<<<<<<<<<<<<<<<<<<<<<<<WRITING MESSAGE DATA HERE<<<<<<<<<<<<<<<<<<
+
+
      
      if(File_Type ==4){ //THEN I HAVE INSERTED MY CRAPPY SD CARD THAT STOPPED WORKING AFTER FORMATTING TO FAT32 FOR YOU MY FAT32 YOUTUBE VIDEO FOR YOU GUYS LOL.
        Complete = 1;   // IT WILL HAVE WRITTEN THE CORRECT DATA TO THE TEXT FILE
@@ -3076,12 +3165,10 @@ void main(){
        Delay_ms(2800);
        goto home;
      }
-
-     //TFT_Set_Font(Tahoma25x27,CL_MAROON,FO_HORIZONTAL);
       
-     TextFile.TotalFileSize += 512;  //-----------AMOUNT OF BYTES TO INCREASE THE TEXT FILE BY------------------------------
+     TextFile.TotalFileSize += 512;  //-----------AMOUNT OF BYTES TO INCREASE THE TEXT FILE BY-------------
 
-     New_Data31 = TextFile.TotalFileSize &0xff000000;
+     New_Data31 = TextFile.TotalFileSize &0xff000000;       //<<<THIS SETS THE FILE SIZE FOR ROOT DIRECTORY
      New_Data31 = New_Data31>>24;
      New_Data30 = TextFile.TotalFileSize &0x00ff0000;
      New_Data30 = New_Data30>>16;
@@ -3096,203 +3183,32 @@ void main(){
 
      //==========================================================================================================================================
 
-                                      //WRITING ROOT DIRECTORY HERE BELOW
+                                      //WRITING ROOT DIRECTORY BELOW HERE.
 
      //==========================================================================================================================================
-      // Clear_Screen_SSD1963(Cyan);
-      loop1:
-      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-      SD_Card_Chip_Select = 0;
-      SPI3_Write(CMD16);       //Set Byte Size
-      SPI3_Write(0x00);
-      SPI3_Write(0x00);
-      SPI3_Write(0x02);
-      SPI3_Write(0x00);
-      SPI3_Write(0x87);        //Checksum
-      SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
-      SPI3_Write(0xFF);        //Command Response Time (NCR).
-      SD_Card_Chip_Select = 1;
 
-      SD_Card_Chip_Select = 0;
-      junkBufferOne[0] = SPI3_Read(dummybuffer);
-      SD_Card_Chip_Select = 1;
-      
-       if (junkBufferOne[0] !=0){
-          Counter++;
-          ErrorCode1 +=16;
-          if (Counter >5){
-                goto home;
-           }
-           goto loop1;
-       }
+      Update_Root_Directory((512)* Root_Directory);    //<<<<<<<<UPDATING ROOT DIRECTORY WITH FILE SIZE HERE  Address = (512)* Root_Directory;
+      //Clear_Screen_SSD1963(Yellow);
+      //Write_Number(Address,100,200,Red);
+      Delay_ms(800);
 
-      //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
-      //Write_Number(16,sdcardbuffer_X_position+150,sdcardbuffer_Y_position,Red);
-      Delay_ms(50);
-      
-      loop2:
-      //Clear_Screen_SSD1963(Lavenderblush);
+     //==========================================================================================================================================
 
-      Address = (512)* Root_Directory;    //UPDATING ROOT DIRECTORY WITH FILE SIZE HERE
-      SPI3CONbits.DISSDO = 0;             //TURNS ON SERIAL DATA OUT
-      SD_Card_Chip_Select = 0;
-      SPI3_Write(CMD24);          //Command 24   WRITE A SECTOR OR WHAT EVER YOU SET IN CMD16
-      SPI3_Write(Address>>24);
-      SPI3_Write(Address>>16);
-      SPI3_Write(Address>>8);
-      SPI3_Write(Address);
-      SPI3_Write(0x87);        //Checksum
-      SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
-      SPI3_Write(0xFF);        //Command Response Time (NCR).
-      SD_Card_Chip_Select = 0;
+                                      //WRITING ROOT DIRECTORY ABOVE HERE.    MESS THIS UP AND YOUR CARD WILL NEED TO BE FORMATTED LOL.
 
-      SD_Card_Chip_Select = 0;
-      junkBufferOne[0] = SPI3_Read(dummybuffer);
-      SD_Card_Chip_Select = 1;
-      
-      if (junkBufferOne[0] !=0){
-           Counter++;
-           Delay_ms(1);
-           ErrorCode2 +=24;
-           if (Counter >5){
-              goto home;
-            }
-            goto loop2;
-       }
-      
-      //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
-      //Write_Number(24,sdcardbuffer_X_position+150,sdcardbuffer_Y_position,White);
-       Delay_ms(50);
-      // THE 'WRITING TO ROOT DIRECTOR WAS PUT HERE SO I WOULD KNOW WHERE MY CODE WAS FAILING. READ BELOW.
-
-     // TFT_Write_Text("WRITING    TO    ROOT    DIRECTORY",120,100);  IT HAS TAKEN ME OVER 16 HOURS TO ESTABLISH ONE OF MY SD CARDS
-                                                                    // STOPPED GIVING ME A ZERO HERE. IT DOES BEFORE THIS POINT.
-                                                                    // IT WAS OK UNTIL I FORMATTED IT TO FAT32 FOR A DEMO FOR YOU ON YOUTUBE.
-                                                                    // IT GAVE ME A ZERO AT POSITION 4 IN A 6 BYTE RESPONSE.
-                                                                    // I MESSED UP MY ORIGINAL CODE TRYING TO GET BOTH CARDS TO WORK SO DELETED THE CODE.
-                                                                    // IT WOULD ALWAYS WRITE THE DATA TO THE CORRECT LOCATION, IT WAS 16 HOURS OF WORK TRYING TO READ IT BACK.
-      loop3:
-      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-      Delay_ms(1);
-      SD_Card_Chip_Select = 0;
-      SPI3_Write(0xFE);
-
-      for (x=0; x<512; x++){
-         SPI3_Write(dataBuffer[x]);
-        }
-      SD_Card_Chip_Select = 1;
-
-      SD_Card_Chip_Select = 0;
-      for (x=0; x<2; x++){
-       junkBufferTwo[x] = SPI3_Read(dummybuffer);
-        }
-      SD_Card_Chip_Select = 1;
-
-      Clear_Screen_SSD1963(Yellow);
-
-      TFT_Write_Text("COMPLETED    UPDATING    ROOT    DIRECTORY   :)",105,50);
-      Delay_ms(100);
-      TFT_Write_Text("NOW    TO    READ    TEXT    FILE     :)",185,100);
-      Delay_ms(100);
-      //TFT_Write_Text("Counter",30,300);
-      //Write_Number(Counter,360,300,Red);
-      //Delay_ms(300);
-      
-      Address = (512) * (Actual_Sector.Sector + Actual_Sector.Sector_Extension);
-
-    //  Read_Sector(Address);
-
-
-      readloop:              //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-      //Clear_Screen_SSD1963(Cyan);
-      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-      SD_Card_Chip_Select = 0;
-      SPI3_Write(CMD16);  //Command 16 WRITE OR READ SIZE
-      SPI3_Write(0x00);
-      SPI3_Write(0x00);
-      SPI3_Write(0x02);
-      SPI3_Write(0x00);
-      SPI3_Write(0x87);        //Checksum
-      SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
-      SPI3_Write(0xFF);        //Command Response Time (NCR).
-      SD_Card_Chip_Select = 1;
-
-      SD_Card_Chip_Select = 0;
-      junkBufferOne[0] = SPI3_Read(dummybuffer);
-      SD_Card_Chip_Select = 1;
-
-       if (junkBufferOne[0] !=0){
-          Delay_ms(1);
-          Counter++;
-          ErrorCode3 +=16;
-          if (Counter >5){
-
-             goto home;
-           }
-           goto readloop;
-       }
-
-      //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
-      //Write_Number(16,sdcardbuffer_X_position+150,sdcardbuffer_Y_position,Red);
-      Delay_ms(50);
-
-      readsectorloop:
-      //Clear_Screen_SSD1963(Lavenderblush);
-
-      Address = (512) * (Actual_Sector.Sector + Actual_Sector.Sector_Extension);
-
-      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-      SD_Card_Chip_Select = 0;
-      SPI3_Write(CMD17);     //Command 17  Read Sector
-      SPI3_Write(Address>>24);
-      SPI3_Write(Address>>16);
-      SPI3_Write(Address>>8);
-      SPI3_Write(Address);
-      SPI3_Write(0x87);        //Checksum
-      SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
-      SPI3_Write(0xFF);        //Command Response Time (NCR).
-      SD_Card_Chip_Select = 1;
-
-      SD_Card_Chip_Select = 0;
-      junkBufferOne[0] = SPI3_Read(dummybuffer);
-      SD_Card_Chip_Select = 1;
-
-     if (junkBufferOne[0] !=0){
-          Delay_ms(1);
-          Counter++;
-          ErrorCode4 +=17;
-          if (Counter >5){
-              TFT_Write_Text("FAILED  TO  READ",250,50);
-              Delay_ms(1800);
-              goto home;
-           }
-           goto readsectorloop;
-       }
-       
-      //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
-      //Write_Number(17,sdcardbuffer_X_position+200,sdcardbuffer_Y_position,Red);
-      Delay_ms(5);   //<<<<<<<<<<<<<<EVERY DIFFERENT COMMAND SEEMS TO REQUIRE A SMALL DELAY TO STOP ERRORS<<<<<<<<<<<<<<<<<<<<<<
-       
-       //-----------------------------READING THE DATA BUFFER HERE + CHECKSUM BYTES IN FRONT OF DATA AND AFTER----------------------------------------------------------
-
-       SD_Card_Chip_Select = 0;
-
-      for (x=0; x<File_Type; x++){
-          junkBufferOne[x] = SPI3_Read(255);
-        }
-
-      for (x=0; x<512; x++){
-          dataBuffer[x] = SPI3_Read(255);     //<<<<<<<<<<<<<<DATA BUFFER HERE
-        }
-
-      for (x=0; x<2; x++){                    //MUST BE 2
-          junkBufferTwo[x] = SPI3_Read(255);
-        }
-
-      SD_Card_Chip_Select = 1;
+     //==========================================================================================================================================
       
 
+      
+     //////////////////READ MESSAGE SECTOR TO DISPLAY IT BELOW//////////////////////////////////////////////////
+
+      Read_Sector((512 * (Actual_Sector.Sector + Actual_Sector.Sector_Extension)));  //<<<<<<<<<<READ NEW SECTOR<<<<<
+      
+      //////////////////READ MESSAGE SECTOR TO DISPLAY IT ABOVE//////////////////////////////////////////////////
+
+      readloop:
       Clear_Screen_SSD1963(Lavenderblush);
+       
       sdcardbuffer_X_position = 3;
       sdcardbuffer_Y_position = 30;
 
@@ -3302,7 +3218,7 @@ void main(){
            sdcardbuffer_Y_position = 30;
            sdcardbuffer_X_position += 100;
          }
-           Delay_ms(5);
+          // Delay_ms(5);
       }
         
       Delay_ms(500);
@@ -3316,16 +3232,16 @@ void main(){
            sdcardbuffer_Y_position = 30;
            sdcardbuffer_X_position += 100;
          }
-           Delay_ms(5);
+          // Delay_ms(5);
       }
       TFT_Set_Font(Tahoma25x27,CL_WHITE,FO_HORIZONTAL);
-      Write_Number(Address/512,50,10,Red);
-      TFT_Write_Text("Writing    AND    Reading    Complete",220,20);
+      TFT_Write_Text("WRITING    &    READING    COMPLETE",200,20);
       Complete = 1;
-      TFT_Write_Text("Counter",30,300);
-      Write_Number(Counter,360,300,Red);
+      //TFT_Write_Text("Counter",30,300);
+      //Write_Number(Counter,360,300,Red);
       SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-      Delay_ms(500);
+      //Write_Number(Address2,400,120,White);
+      Delay_ms(1000);
       File_Counter = 0;
       xpos = 30;
       ypos = 30;
