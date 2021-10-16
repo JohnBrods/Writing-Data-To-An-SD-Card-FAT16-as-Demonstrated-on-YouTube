@@ -2,7 +2,7 @@
                                                     /*Anyone is free to copy, modify, publish, use, compile or
                                                     distribute this software, either in source code form or as a compiled
                                                     binary, for non-commercial use only. (i.e. YOU MAY NOT SELL IT)
-                                                    John B 14/10/2021
+                                                    John B 16/10/2021
 
                                                     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
                                                     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
@@ -11,8 +11,8 @@
                                                     OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
                                                     ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
                                                     OTHER DEALINGS IN THE SOFTWARE.*/
-                                                    //This C file shows how to write 512 bytes of data to an SD card containing a text file.
-                                                    //Read SD Card Boot Sector or any other
+                                                    //This C File Shows How To Write 512 Bytes Of Data To An Sd Card Containing A Text File, Updates Root Directory Then Reads Message Back
+                                                    //Read SD Card Boot Sector or any other sector
                                                     //I Would Like A Mention If You Demo It.
                                                     //Like All My C Files, It Has My Own 'Write Number' Function, It's Fast :)
                                                     //To Donate A Coffee, See Link In Youtube Where You Found This File, Thank You.
@@ -629,7 +629,7 @@ static void Init_MCU() {
 
 unsigned int Background_Colour;
 
-Clear_Screen_SSD1963(unsigned int Colour){
+void Clear_Screen_SSD1963(unsigned int Colour){
 
      unsigned long i;
      TFT_CS = 0;
@@ -2246,19 +2246,18 @@ unsigned int    Number_of_Root_Directory_Entries;   // Number of Root Directory 
 unsigned int    Sectors_Per_FAT;    //Sectors per FAT
 unsigned long   Number_of_Sectors;
 unsigned long   Number_Of_Hidden_Sectors;
-unsigned char   byte_String[4];
-unsigned char   int_String[7];
-unsigned char   Long_String[14];
-unsigned long   sectorb0;
-unsigned long   sectorb1;
-unsigned int    sectorb2;
-unsigned char   sectorb3;
 unsigned long   Cluster_Size;  //int x int = long
-unsigned char   sectorbuffer11;
-unsigned int    sectorbuffer12;
+
 
 
 void Get_Boot_Information(){
+
+  unsigned char   sectorbuffer11;
+  unsigned int    sectorbuffer12;
+  unsigned long   sectorb0;
+  unsigned long   sectorb1;
+  unsigned int    sectorb2;
+  unsigned char   sectorb3;
 
   Bytes_Per_Sector = Boot_SectorBuffer[0x0B] +256*Boot_SectorBuffer[0x0C];
   Sectors_Per_Cluster = Boot_SectorBuffer[0x0D];
@@ -2287,6 +2286,10 @@ unsigned int Number_Start_x = 350;
 unsigned char Font_Height = 26;
 
 void Show_Boot_information(){
+
+        unsigned char byte_String[4];
+        unsigned char int_String[7];
+        unsigned char Long_String[14];
 
         Get_Boot_Information();
 
@@ -2462,9 +2465,6 @@ void InitTimer1(){
   PR1                 = 42188;
   TMR1                 = 0;
 }
-
-
- unsigned char Colour1 = Blue;
  
 
 struct Actual_Sector_Details{
@@ -2474,27 +2474,23 @@ struct Actual_Sector_Details{
 }Actual_Sector;
 
  
- unsigned int CounterA;
+unsigned char Colour1 = Blue;
 void Timer1Interrupt() iv IVT_TIMER_1 ilevel 7 ics ICS_SRS {
+    unsigned int CounterA;
     T1IF_bit = 0;
 
-  CounterA++;
+    CounterA++;
 
   if (CounterA >=10 && CounterA<21){
-  
       Colour1 = Blue;
       Write_Number(Actual_Sector.Sector + Actual_Sector.Sector_Extension,360,298,Colour1);
-
-
-  }
+   }
   
    if (CounterA >20){
-
       Colour1 = 9;
       Write_Number(Actual_Sector.Sector + Actual_Sector.Sector_Extension,360,298,Colour1);
-
-         CounterA = 0;
-  }
+      CounterA = 0;
+    }
 }
 
 
@@ -2507,17 +2503,16 @@ struct Text_File_Details{
   
 }TextFile;
 
-                                                                                           //cr
-unsigned char ErrorCode0 = 0;  //  cr  t  h  a  n  k  s     4     w  a   t  c h  i  n  g   .    d  o  n  t     f  o  r  g  e  t     t  o     h  i  t     l  i  k  e     s  e  e     s  h  o  w     m  o  r  e     4     l  i  n  k
-unsigned char Character_Array[] = {13,'T',72,65,78,75,83,32,52,32,87,65,84,67,72,73,78,71,46,13,68,79,78,84,32,70,79,82,71,69,84,32,84,79,32,72,73,84,32,76,73,75,69,13,83,69,69,32,83,72,79,87,32,77,79,82,69,32,52,32,76,73,78,75};
-
+unsigned char ErrorCode0 = 0;
 //unsigned char Character_Array2[] = {T,H,A,NKS4WATCHINGDONTFORGETTOHITLIKESEESHOWMOREFORLINK};
 void Write_Message_To_Sector(unsigned long Address){
+                                                                                                //cr
+                               //  cr  t  h  a  n  k  s     4     w  a   t  c h  i  n  g   .    d  o  n  t     f  o  r  g  e  t     t  o     h  i  t     l  i  k  e     s  e  e     s  h  o  w     m  o  r  e     4     l  i  n  k
+unsigned char Character_Array[] = {13,'T',72,65,78,75,83,32,52,32,87,65,84,67,72,73,78,71,46,13,68,79,78,84,32,70,79,82,71,69,84,32,84,79,32,72,73,84,32,76,73,75,69,13,83,69,69,32,83,72,79,87,32,77,79,82,69,32,52,32,76,73,78,75};
 
      unsigned int x = 0;
      unsigned int Result = 0;
      unsigned char i;
-     
      Delay_ms(30);
      //Clear_Screen_SSD1963(Cyan);
      //Result = strlen (Character_Array);
@@ -2550,11 +2545,9 @@ void Write_Message_To_Sector(unsigned long Address){
           if (Counter >5){
              Clear_Screen_SSD1963(Red);
              TFT_Write_Text("ERROR 16 WRITE SECTOR",30,70);
-
            }
           goto loopwrite1;
       }
-
 
      loopwrite1:
 
@@ -2583,7 +2576,6 @@ void Write_Message_To_Sector(unsigned long Address){
           if (Counter >5){
              Clear_Screen_SSD1963(Red);
              TFT_Write_Text("ERROR 24 WRITE SECTOR",30,70);
-
            }
           goto loopwrite1;
       }
@@ -2623,7 +2615,6 @@ void Write_Message_To_Sector(unsigned long Address){
      TFT_Write_Text("COMPLETED    WRITING    TEXT    FILE   :)",105,150);
      Delay_ms(300);
      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-
 
       /*for (x=0; x<8; x++){     //ANOTHER EXAMPLE
          SPI3_Write(13);
@@ -2691,7 +2682,6 @@ void Write_Message_To_Sector(unsigned long Address){
          SPI3_Write('N');
          SPI3_Write('K');
        }*/
-
 
      /*for (x=0; x<512; x++){
            SPI3_Write(j);
@@ -2803,48 +2793,38 @@ void Update_Root_Directory(unsigned long Address){
       //Delay_ms(300);
 }
 
-
-
-
-
-
-
-
-
-
 void main(){
 
+      unsigned int xpos = 30;
+      unsigned int ypos = 30;
+      unsigned long Address = 0;
+      unsigned long Sector = 0;
+      unsigned char dummybuffer = 255;
+      unsigned int  x = 0;
+      // unsigned char anotherloop;
+      unsigned char infoloop;
+      unsigned char loopwrite1;
+      // unsigned char loop222;
+      unsigned char home;
+      unsigned char readloop;
+      unsigned char readsectorloop;
+      unsigned int  Location = 8;
+      unsigned char Found = 0;
+      unsigned long Root_Directory_In_Bytes;
+      unsigned long Sum1;
+      unsigned char File_Counter = 0;
+      unsigned long New_Data31 = 0;
+      unsigned long New_Data30 = 0;
+      unsigned int  New_Data29 = 0;
+      unsigned char New_Data28 = 0;
+      unsigned char HexString28[4];
+      unsigned char HexString29[4];
+      unsigned char HexString30[4];
+      unsigned char HexString31[4];
+      unsigned char Complete = 0;
 
-     unsigned int xpos = 30;
-     unsigned int ypos = 30;
-     unsigned long Address = 0;
-     unsigned long Sector = 0;
-     unsigned char dummybuffer = 255;
-     unsigned int  x = 0;
-    // unsigned char anotherloop;
-     unsigned char infoloop;
-     unsigned char loopwrite1;
-    // unsigned char loop222;
-     unsigned char home;
-     unsigned char readloop;
-     unsigned char readsectorloop;
-     unsigned int  Location = 8;
-     unsigned char Found = 0;
-     unsigned long Root_Directory_In_Bytes;
-     unsigned long Sum1;
-     unsigned char File_Counter = 0;
-     unsigned long New_Data31 = 0;
-     unsigned long New_Data30 = 0;
-     unsigned int  New_Data29 = 0;
-     unsigned char New_Data28 = 0;
-     unsigned char HexString28[4];
-     unsigned char HexString29[4];
-     unsigned char HexString30[4];
-     unsigned char HexString31[4];
-     unsigned char Complete = 0;
-
-     Actual_Sector.Sector = 0;
-     Actual_Sector.Sector_Extension = 0;
+      Actual_Sector.Sector = 0;
+      Actual_Sector.Sector_Extension = 0;
 
       LATB10_bit = 1;
       LATB14_bit = 1;
@@ -3121,37 +3101,13 @@ void main(){
       
      T1CONbits.ON = 0; //<<<<<TIMER 1 OFF
        
-     /////////////////////////////////////////////////////////OK WITH THIS BELOW HERE
+     ///////////////////////////////TIMER 1 TURNED OFF TO START THE PROGRAM BELOW/////////////////////////////////////////////
        
-       
-     /*SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
-     SD_Card_Chip_Select = 0;
-     SPI3_Write(CMD16);  // Read Sector Size
-     SPI3_Write(0x00);
-     SPI3_Write(0x00);
-     SPI3_Write(0x02);
-     SPI3_Write(0x00);
-     SPI3_Write(0x87);     // Checksum
-     SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
-     SPI3_Write(0xFF);     // Command Response Time (NCR).
-     SD_Card_Chip_Select = 1;
-
-     SD_Card_Chip_Select = 0;
-     junkBufferOne[0] = SPI3_Read(dummybuffer);
-     SD_Card_Chip_Select = 1;*/
-     
-     
-     //Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
-     //Write_Number(16,sdcardbuffer_X_position+150,sdcardbuffer_Y_position,Red);
-     //Delay_ms(300);
-     
-     //////////////////////////////OK WITH ABOVE HERE
 
      Actual_Sector.Sector_Extension = 8;
-     Address = ((512) * ((Actual_Sector.Sector + Actual_Sector.Sector_Extension)));    //SET ADDRESS TO WRITE TO.
+     Address = ((512) * ((Actual_Sector.Sector + Actual_Sector.Sector_Extension)));    //SET ADDRESS TO WRITE YOUR MESSAGE / DATA TO.
 
-     Write_Message_To_Sector(Address);   //<<<<<<<<<<<<<<<<<<<<<<<<<<<WRITING MESSAGE DATA HERE<<<<<<<<<<<<<<<<<<
-
+     Write_Message_To_Sector(Address);   //<<<<<<<<<<<<<WRITING MESSAGE DATA HERE<<<<<<<<<<<<<<<<<<
 
      
      if(File_Type ==4){ //THEN I HAVE INSERTED MY CRAPPY SD CARD THAT STOPPED WORKING AFTER FORMATTING TO FAT32 FOR YOU MY FAT32 YOUTUBE VIDEO FOR YOU GUYS LOL.
@@ -3197,7 +3153,6 @@ void main(){
                                       //WRITING ROOT DIRECTORY ABOVE HERE.    MESS THIS UP AND YOUR CARD WILL NEED TO BE FORMATTED LOL.
 
      //==========================================================================================================================================
-      
 
       
      //////////////////READ MESSAGE SECTOR TO DISPLAY IT BELOW//////////////////////////////////////////////////
