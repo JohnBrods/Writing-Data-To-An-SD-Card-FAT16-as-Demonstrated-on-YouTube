@@ -405,12 +405,10 @@ sbit TFT_RD_Direction  at TRISC4_bit;    //PMRD  READ
 
 sbit TFT_WR_Direction  at TRISC3_bit;    //PMWR  WRITE  EBIWE/AN20/RPC3/PMWR/RC3
 
-//sbit SD_Card_Chip_Select            at LATE8_bit;
-//sbit SD_Card_Chip_Select_Direction  at TRISE8_bit;
 #define  SD_Card_Chip_Select  LATE8_bit
 
-sbit Mmc_Chip_Select            at LATE8_bit;
-sbit Mmc_Chip_Select_Direction at TRISE8_bit;
+//sbit Mmc_Chip_Select            at LATE8_bit;
+//sbit Mmc_Chip_Select_Direction at TRISE8_bit;
 
 void Set_Index(unsigned char index) {
   TFT_RS = 0;
@@ -435,7 +433,6 @@ void Write_Command_SSD1963(unsigned char Command) {
   PMDOUT = Command;
   while(PMMODE & 0x8000); //Busy bit
 }
-
 
 void Write_Data_SSD1963(unsigned int _data) {
   TFT_RS = 1;   //RS = 1 = DATA   D/C = 1
@@ -472,10 +469,7 @@ void TFT_Set_DBC_SSD1963_BACKLIGHT(char value2) {  //PAGE54
   TFT_CS = 1;
 }
 
-
-
 void TFT_SET_MODE_SSD1963_5_Inch(){  // & newer 7"            Page 84 for timing
-
 
       TFT_CS_Direction = 0;
       TFT_RST_Direction = 0;
@@ -488,7 +482,7 @@ void TFT_SET_MODE_SSD1963_5_Inch(){  // & newer 7"            Page 84 for timing
       TFT_RD = 1;
       TFT_WR = 1;
 
-       TFT_CS = 0;
+      TFT_CS = 0;
 
       TFT_Set_Index_Ptr(0x01);     //Software Reset
       Delay_ms(10);                //The Host Processor Must Wait 5ms Before Sending Any New Commands
@@ -548,7 +542,6 @@ void TFT_SET_MODE_SSD1963_5_Inch(){  // & newer 7"            Page 84 for timing
       TFT_Write_Command_Ptr(0x05);   // >>>LCD_FPR = 349526
       TFT_Write_Command_Ptr(0x55);   //40,000,076 Hz   40 MHz  349 526    08/07/21
       TFT_Write_Command_Ptr(0x00);
-
 
       /////////////////////////HORIZONTAL PERIOD BELOW /////  08/07/21  ///////////////////////////////////////
 
@@ -711,7 +704,7 @@ void Clear_Screen_SSD1963(unsigned int Colour){
 unsigned int Pixel;
 void Get_Pixel_Colour(unsigned int Colour){
 
-      switch (Colour)  {
+    switch (Colour)  {
 
      case 0:     Pixel = 0x00;
                  break;
@@ -1091,9 +1084,6 @@ void Write_Number_One(unsigned int X_Position, unsigned int Y_Position, unsigned
      }
      TFT_CS = 1;
 }
-
-
-
 
 void Write_Number_Zero(unsigned int X_Position, unsigned int Y_Position, unsigned int Colour){
      static unsigned char x = 0;
@@ -1731,7 +1721,6 @@ void Set_Bus_Speeds(){
     SYSKEY = 0x556699AA;
 
     //000 = 1x divider  001 = 2x divider 010 = 3x divider  010 = 3x divider  011 = 4x divider  100 = 5x divider  101 = 6x divider  110 = 10x divider  111 = 12x divider
-
     // PB1DIV
     // Peripheral Bus 1 cannot be turned off, so there's no need to turn it on
     PB1DIVbits.PBDIV = 1; // Peripheral Bus 1 Clock Divisor Control (PBCLK1 is SYSCLK divided by 2)
@@ -1782,7 +1771,7 @@ void initFastSPI(void)
 }
 
 
-/* Definitions for MMC/SDC command */
+                                           // Definitions for MMC/SD CARD command
 #define CMD0   (64 + 0)                    // Software Reset Command
 #define CMD1   (64 + 1)                    // Initiate initialization process.
 #define ACMD41 (64 + 41)                   // SEND_OP_COND (SDC)
@@ -1811,7 +1800,6 @@ unsigned char junkBufferOne[5];
 unsigned char junkBufferTwo[5];
 unsigned char SD_Error = 0;
 unsigned char dummybuffer = 255;
-
 
 void Initialise_SDCARD(){
 
@@ -1879,7 +1867,6 @@ void Initialise_SDCARD(){
            }
             goto loop2;
        }
-       
 
       Counter = 0;
       loop3:
@@ -1927,7 +1914,6 @@ void Initialise_SDCARD(){
       //Write_Number(41,sdcardbuffer_X_position+250,sdcardbuffer_Y_position,Black);
       Delay_ms(20);
 
-
       if (Boot_SectorBuffer[0] == 0){
           Counter = 0;
           goto loop5;      //GOING TO START OF CMD41 AND LOOPING WILL GIVE YOU A 5 SO GOTO 55 AGAIN
@@ -1942,9 +1928,7 @@ void Initialise_SDCARD(){
 
         goto loop3;          }
         
-        
-        
-        while(SD_Error==41){}
+      while(SD_Error==41){}
 
       loop5:  //--------------------------------------------------------------------------------------------
       // Delay_ms(2300);
@@ -1977,7 +1961,6 @@ void Initialise_SDCARD(){
       Write_Number(58,sdcardbuffer_X_position+200,sdcardbuffer_Y_position,Black);
       Delay_ms(900);*/
 
-
       if (Boot_SectorBuffer[0] !=0){
           Counter++;
           Delay_ms(1);
@@ -1989,8 +1972,7 @@ void Initialise_SDCARD(){
             goto loop5;
        }
 
-       loop6:  //--------------------------------------------------------------------------------------------
-
+      loop6:  //----------------------------------------------------------------------------
       //Clear_Screen_SSD1963(Violet);
       SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
       SD_Card_Chip_Select = 0;
@@ -2024,7 +2006,6 @@ void Initialise_SDCARD(){
        }
 
       looplast:
-
       /*Clear_Screen_SSD1963(Lavenderblush);
       sdcardbuffer_X_position = 30;
       sdcardbuffer_Y_position = 30;*/
@@ -2059,7 +2040,7 @@ void Initialise_SDCARD(){
             goto looplast;
        }
 
-       //-----------------------------READING THE DATA BUFFER HERE + CHECKSUM BYTES IN FRONT OF DATA AND AFTER----------------------------------------------------------
+       //-----------------------------READING THE DATA BUFFER HERE BELOW + CHECKSUM BYTES IN FRONT OF DATA AND AFTER----------------------------------------------------------
 
       SD_Card_Chip_Select = 0;
 
@@ -2077,20 +2058,18 @@ void Initialise_SDCARD(){
 
       SD_Card_Chip_Select = 1;
 
-       //---------------------------------------------------------------------------------------
-
+      //---------------------------------------------------------------------------------------
 
       sdcardbuffer_X_position = 55;
       sdcardbuffer_Y_position = 30;
 
-      Complete:   //-----------------------------------------------------------------------------------------------
-
+      Complete:   //----------------------------------------------------------------------------
       //Clear_Screen_SSD1963(Lavenderblush);
       //Clear_Screen_SSD1963(Yellow);
       sdcardbuffer_X_position = 3;
       sdcardbuffer_Y_position = 30;
 
-      //---------------------------------------------------------------------------------------------------------------------
+      //----------------------------------------------------------------------------------------
 
       /*for (x=0; x<100; x++, sdcardbuffer_Y_position +=30 ){
           Write_Number(Boot_SectorBuffer[x],sdcardbuffer_X_position,sdcardbuffer_Y_position,Black);
@@ -2107,7 +2086,6 @@ void Initialise_SDCARD(){
 
       sdcardbuffer_X_position = 3;
       sdcardbuffer_Y_position = 30;
-
       //---------------------------------------------------------------------------------------------------------------------
 
       /*for (x=412; x<513; x++, sdcardbuffer_Y_position +=30 ){
@@ -2134,7 +2112,6 @@ void Initialise_SDCARD(){
             goto looplast;          //Start Reading buffer again.
           }
       }
-
 
      if (Boot_SectorBuffer[511] !=170){     //File Type is Wrong.
            Clear_Screen_SSD1963(Red);
@@ -2179,17 +2156,13 @@ void Initialise_SDCARD(){
           TFT_Write_Text("If   Error   111   Reset   Power",2,150); }
        }
 
-
       //Write_Number(Boot_SectorBuffer[510],300,120,White);
       //Write_Number(Boot_SectorBuffer[511],300,150,White);
        SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
        Delay_ms(1500);
-
 }
 
-
-
-////////////////////////////////////////////////////////////////////////////////    “little-endian”   Least Significant Number first !!  //////////////////////////////////////
+///////////////////////////////////////    “little-endian”   Least Significant Number first !!  //////////////////////////////////////
 
 //Offset |   Size    | Description           Implementing File I/O Functions Using Microchip’s Memory Disk Drive File System Library  AN1045
 //  00h  |   3 Bytes | Jump Code + NOP
@@ -2216,9 +2189,7 @@ void Initialise_SDCARD(){
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-
 unsigned long  First_File_Allocation_Table_at;    // Sector number of first FAT
-
 
 //   Offset  |  Size     |  Description        Implementing File I/O Functions Using Microchip’s Memory Disk Drive File System Library  AN1045
 //      00h  |  8 Bytes  |  Filename(1).
@@ -2247,8 +2218,6 @@ unsigned int    Sectors_Per_FAT;    //Sectors per FAT
 unsigned long   Number_of_Sectors;
 unsigned long   Number_Of_Hidden_Sectors;
 unsigned long   Cluster_Size;  //int x int = long
-
-
 
 void Get_Boot_Information(){
 
@@ -2333,18 +2302,18 @@ void Show_Boot_information(){
         TFT_Write_Text(int_String,Number_Start_x-1,Font_Height*10);
         TFT_Write_Text("Root Directory   =",Text_Line_Start_x,Font_Height*10);
  }
- 
+
 unsigned char dataBuffer[512];   // SECTOR BUFFER
 unsigned long Address2;
 Read_Sector(unsigned long Address){
-      
+
       unsigned char looplast;
       unsigned int x = 0;
       SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
       //Clear_Screen_SSD1963(Cyan);
       loop6:
       Delay_ms(20);
-      
+
       SD_Card_Chip_Select = 0;
       SPI3_Write(CMD16);  //Command 16          read block
       SPI3_Write(0x00);
@@ -2362,7 +2331,6 @@ Read_Sector(unsigned long Address){
       //junkBufferOne[2] = SPI3_Read(dummybuffer);  ????
       SD_Card_Chip_Select = 1;
       Delay_ms(30);
-
       ///Write_Number(junkBufferOne[0],sdcardbuffer_X_position,sdcardbuffer_Y_position+30,Black);
       //Write_Number(junkBufferOne[1],sdcardbuffer_X_position,sdcardbuffer_Y_position+60,Black);
       //Write_Number(junkBufferOne[2],sdcardbuffer_X_position,sdcardbuffer_Y_position+90,Black);
@@ -2370,7 +2338,6 @@ Read_Sector(unsigned long Address){
      // Write_Number(junkBufferOne[4],sdcardbuffer_X_position,sdcardbuffer_Y_position+150,Black);
      // Write_Number(junkBufferOne[5],sdcardbuffer_X_position,sdcardbuffer_Y_position+180,Black);
      // Write_Number(16,sdcardbuffer_X_position+200,sdcardbuffer_Y_position,Black);*/
-
 
       if (junkBufferOne[0] !=0){
           Counter++;
@@ -2402,7 +2369,7 @@ Read_Sector(unsigned long Address){
       SPI3CONbits.DISSDO = 1;  //TURNS OFF SERIAL DATA OUT
       SPI3_Write(0xFF);     // Command Response Time (NCR).
       SD_Card_Chip_Select = 1;
-      
+
       SD_Card_Chip_Select = 0;
       junkBufferOne[0] = SPI3_Read(dummybuffer);
       SD_Card_Chip_Select = 1;
@@ -2425,8 +2392,7 @@ Read_Sector(unsigned long Address){
           goto looplast;
        }
 
-
-       //-----------------------------READING THE DATA BUFFER HERE + CHECKSUM BYTES IN FRONT OF DATA AND AFTER----------------------------------------------------------
+       //-----------------------------READING THE DATA BUFFER HERE BELOW + CHECKSUM BYTES IN FRONT OF DATA AND AFTER----------------------------------------------------------
 
       SD_Card_Chip_Select = 0;
 
@@ -2447,14 +2413,10 @@ Read_Sector(unsigned long Address){
        Address2 = (Address /512);
        return Address2;
 }
- 
-
-
 
 //Timer1
 //Prescaler 1:256; PR1 Preload = 42188; Actual Interrupt Time = 100.001185185 ms
 
-//Place/Copy this part in declaration section
 void InitTimer1(){
   T1CON         = 0x8030;
   T1IP0_bit         = 1;
@@ -2470,9 +2432,7 @@ void InitTimer1(){
 struct Actual_Sector_Details{
   unsigned long Sector;
   unsigned long Sector_Extension;
-
 }Actual_Sector;
-
  
 unsigned char Colour1 = Blue;
 void Timer1Interrupt() iv IVT_TIMER_1 ilevel 7 ics ICS_SRS {
@@ -2500,16 +2460,13 @@ struct Text_File_Details{
   unsigned int Location;
   unsigned int TotalFileSize;
   unsigned long Start_Cluster;
-  
 }TextFile;
 
 unsigned char ErrorCode0 = 0;
-//unsigned char Character_Array2[] = {T,H,A,NKS4WATCHINGDONTFORGETTOHITLIKESEESHOWMOREFORLINK};
-void Write_Message_To_Sector(unsigned long Address){
-                                                                                                //cr
-                               //  cr  t  h  a  n  k  s     4     w  a   t  c h  i  n  g   .    d  o  n  t     f  o  r  g  e  t     t  o     h  i  t     l  i  k  e     s  e  e     s  h  o  w     m  o  r  e     4     l  i  n  k
-unsigned char Character_Array[] = {13,'T',72,65,78,75,83,32,52,32,87,65,84,67,72,73,78,71,46,13,68,79,78,84,32,70,79,82,71,69,84,32,84,79,32,72,73,84,32,76,73,75,69,13,83,69,69,32,83,72,79,87,32,77,79,82,69,32,52,32,76,73,78,75};
 
+void Write_Message_To_Sector(unsigned long Address,unsigned long *Character_Array_Pointer){
+
+     unsigned char *Pointer = Character_Array_Pointer;
      unsigned int x = 0;
      unsigned int Result = 0;
      unsigned char i;
@@ -2550,7 +2507,6 @@ unsigned char Character_Array[] = {13,'T',72,65,78,75,83,32,52,32,87,65,84,67,72
       }
 
      loopwrite1:
-
      SPI3CONbits.DISSDO = 0;  //TURNS ON SERIAL DATA OUT
      SD_Card_Chip_Select = 0;
      SPI3_Write(CMD24);          //Command 24   WRITE A SECTOR OR WHAT EVER YOU SET IN CMD16
@@ -2592,7 +2548,7 @@ unsigned char Character_Array[] = {13,'T',72,65,78,75,83,32,52,32,87,65,84,67,72
      SPI3_Write(0xFE);
 
      for (x=0; x<512; x++){
-         SPI3_Write(Character_Array[i]);        //<<<<<WRITING DATA HERE
+         SPI3_Write(Pointer[i]);        //<<<<<WRITING DATA HERE           SPI3_Write(Character_Array[i]);
          i++;
          if (i>64){
             i = 0; }
@@ -2605,7 +2561,6 @@ unsigned char Character_Array[] = {13,'T',72,65,78,75,83,32,52,32,87,65,84,67,72
          junkBufferTwo[x] = SPI3_Read(dummybuffer);
        }
      SD_Card_Chip_Select = 1;
-
 
      //Write_Number(junkBufferTwo[0],20,200,Blue);
      //Write_Number(junkBufferTwo[1],130,200,Blue);
@@ -2795,6 +2750,14 @@ void Update_Root_Directory(unsigned long Address){
 
 void main(){
 
+                                     //  cr  t  h  a  n  k  s     4     w  a   t  c h  i  n  g   .    d  o  n  t     f  o  r  g  e  t     t  o     h  i  t     l  i  k  e
+ unsigned short Character_Array[] = {13,'T',72,65,78,75,83,32,52,32,87,65,84,67,72,73,78,71,46,13,68,79,78,84,32,70,79,82,71,69,84,32,84,79,32,72,73,84,32,76,73,75,69,13,
+
+                                   //s  e  e     s  h  o  w     m  o  r  e     4     l  i  n  k
+                                    83,69,69,32,83,72,79,87,32,77,79,82,69,32,52,32,76,73,78,75};
+                                    
+      unsigned long *Pointer = &Character_Array;
+      unsigned char *Pointer2 = Character_Array;
       unsigned int xpos = 30;
       unsigned int ypos = 30;
       unsigned long Address = 0;
@@ -2876,8 +2839,6 @@ void main(){
       Delay_ms(200);
       while(Boot_SectorBuffer[0]<1);
       
-      //SPI3CONbits.DISSDO =0;
-      
       LATJ4_Bit = 1;   //MEMORY CHIP SELECT C/E - CHIP ENABLE INPUT  PIN 6 SRAM   EBICS0/RJ4
       SRAM_CS = 1;
       LATJ12_BIT = 0;  //LOW BYTE  L/B
@@ -2896,7 +2857,7 @@ void main(){
       sdcardbuffer_X_position = 30;
       sdcardbuffer_Y_position = 30;
       
-      ////////////////////////////////////////////////////////Format fat16 below//////////////////////////////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////FORMAT FAT16 BELOW-----REQUIRES MIKROELEKTRONIKA LIBRARY/////////////////////////
       /*TFT_Fill_Screen(CL_RED);
        TFT_Write_Text("GOING  TO  FORMAT !",80,150); //****************************
        Delay_ms(2000);
@@ -2909,7 +2870,6 @@ void main(){
        TFT_Write_Text("TOO LATE, CARD FORMATTED !",50,150); //****************************
        Delay_ms(2000);*/
       //////////////////////////////////////////////////////////////////////////////////////////
-      
       
       Get_Boot_Information();        //does what it says   BOOT SECTOR IS READ DURING Initialise SDCARD
 
@@ -2983,7 +2943,6 @@ void main(){
       }
        Location += 8;
     }
-    
     
      //------------------------------------UN COMMENT TO READ A LARGER ROOT DIRECTORY- YOU CAN KEEP ADDING SECTORS TO READ-----------
      // Write_Number(dataBuffer[284],560,ypos,Red);
@@ -3078,7 +3037,7 @@ void main(){
 
      Root_Directory_In_Bytes = (Root_Directory)<<9;     //SAME AS ROOT_DIRECTORY * 512
      Number_of_Root_Directory_Entries = Number_of_Root_Directory_Entries * 32;
-     Sum1 = Sum1 = (TextFile.Start_Cluster -2) *(64*512);
+     Sum1 = (TextFile.Start_Cluster -2) *(64*512);
      Root_Directory_In_Bytes = (Root_Directory_In_Bytes + Number_of_Root_Directory_Entries);
      Sum1 = (Sum1 + Root_Directory_In_Bytes);
      Actual_Sector.Sector = Sum1/512;
@@ -3088,9 +3047,17 @@ void main(){
      //Write_Number(Actual_Sector,360,ypos,Colour1); //IN TIMER NOW
      TFT_Write_Text("Actual    Sector    Calculator    =",xpos,ypos);
      // Write_Number(ypos,360,ypos,red); SO I COULD PUT IT IN TIMER
-     ypos +=64;
-
      ypos +=32;
+     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     TFT_Write_Text("Character   Array   Address =",xpos,ypos);
+     Write_Number(Pointer,360,ypos,Yellow);  //write address of char array
+     ypos +=32;
+     //Pointer2 = 1;
+     Write_Number(Pointer2[1],360,ypos,Black);  //write address of char array
+     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     //ypos +=32;
 
      InitTimer1();
      EnableInterrupts();
@@ -3102,13 +3069,11 @@ void main(){
      T1CONbits.ON = 0; //<<<<<TIMER 1 OFF
        
      ///////////////////////////////TIMER 1 TURNED OFF TO START THE PROGRAM BELOW/////////////////////////////////////////////
-       
 
      Actual_Sector.Sector_Extension = 8;
      Address = ((512) * ((Actual_Sector.Sector + Actual_Sector.Sector_Extension)));    //SET ADDRESS TO WRITE YOUR MESSAGE / DATA TO.
 
-     Write_Message_To_Sector(Address);   //<<<<<<<<<<<<<WRITING MESSAGE DATA HERE<<<<<<<<<<<<<<<<<<
-
+     Write_Message_To_Sector(Address,Pointer);   //<<<<<<<<<<<<<WRITING MESSAGE DATA HERE<<<<<<<<<<<<<<<<<<
      
      if(File_Type ==4){ //THEN I HAVE INSERTED MY CRAPPY SD CARD THAT STOPPED WORKING AFTER FORMATTING TO FAT32 FOR YOU MY FAT32 YOUTUBE VIDEO FOR YOU GUYS LOL.
        Complete = 1;   // IT WILL HAVE WRITTEN THE CORRECT DATA TO THE TEXT FILE
